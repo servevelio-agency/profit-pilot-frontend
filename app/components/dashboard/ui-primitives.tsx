@@ -178,6 +178,8 @@ export function NumberField({
           const raw = event.target.value;
           if (raw === '') {
             setText('');
+            lastEmitted.current = 0;
+            onChange(0);
             return;
           }
           if (!/^-?\d*\.?\d*$/.test(raw)) return;
@@ -187,6 +189,11 @@ export function NumberField({
           if (!Number.isFinite(parsed)) return;
           lastEmitted.current = parsed;
           onChange(parsed);
+        }}
+        onBlur={() => {
+          if (text !== '') return;
+          lastEmitted.current = 0;
+          onChange(0);
         }}
         className='w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring'
       />
