@@ -136,11 +136,19 @@ export function DashboardApp(d: TradingDashboard) {
               </div>
             </div>
             <div className='flex flex-wrap gap-2'>
+              <ButtonGhost onClick={() => refreshAll()} className='text-sm'>
+                Refresh all
+              </ButtonGhost>
               <ButtonGhost
-                onClick={() => refreshAll()}
+                onClick={() =>
+                  // toggle between 1s live updates and 8s low-frequency
+                  d.setInstrumentPollMs?.(
+                    d.instrumentPollMs === 1000 ? 8000 : 1000
+                  )
+                }
                 className='text-sm'
               >
-                Refresh all
+                {d.instrumentPollMs === 1000 ? 'Live: ON' : 'Live: OFF'}
               </ButtonGhost>
               <ButtonGhost
                 disabled={logoutMutation.isPending}
@@ -246,9 +254,7 @@ export function DashboardApp(d: TradingDashboard) {
                   <div className='flex flex-wrap gap-2'>
                     <ButtonPrimary
                       className='px-3 py-2 text-xs'
-                      onClick={() =>
-                        setShowAddInstrument((prev) => !prev)
-                      }
+                      onClick={() => setShowAddInstrument((prev) => !prev)}
                     >
                       {showAddInstrument ? 'Hide form' : 'Add instrument'}
                     </ButtonPrimary>
@@ -390,9 +396,7 @@ export function DashboardApp(d: TradingDashboard) {
                           addInstrumentMutation.mutate(newInstrument)
                         }
                       >
-                        {addInstrumentMutation.isPending
-                          ? 'Saving…'
-                          : 'Create'}
+                        {addInstrumentMutation.isPending ? 'Saving…' : 'Create'}
                       </ButtonPrimary>
                     </div>
                   </div>
@@ -402,16 +406,13 @@ export function DashboardApp(d: TradingDashboard) {
                   rows={instrumentStates}
                   meta={instrumentStateMeta}
                   busy={busyInstrument}
-                  onToggle={(symbol) =>
-                    toggleInstrumentMutation.mutate(symbol)
-                  }
-                  onClose={(symbol) =>
-                    closePositionMutation.mutate(symbol)
-                  }
-                  onRemove={(symbol) =>
-                    removeInstrumentMutation.mutate(symbol)
-                  }
-                  onUpdateInstrument={async (symbol, updates): Promise<void> => {
+                  onToggle={(symbol) => toggleInstrumentMutation.mutate(symbol)}
+                  onClose={(symbol) => closePositionMutation.mutate(symbol)}
+                  onRemove={(symbol) => removeInstrumentMutation.mutate(symbol)}
+                  onUpdateInstrument={async (
+                    symbol,
+                    updates
+                  ): Promise<void> => {
                     await updateInstrumentMutation.mutateAsync({
                       symbol,
                       updates,
@@ -419,7 +420,7 @@ export function DashboardApp(d: TradingDashboard) {
                   }}
                   updatePendingSymbol={
                     updateInstrumentMutation.isPending
-                      ? updateInstrumentMutation.variables?.symbol ?? null
+                      ? (updateInstrumentMutation.variables?.symbol ?? null)
                       : null
                   }
                 />
@@ -459,8 +460,7 @@ export function DashboardApp(d: TradingDashboard) {
                   </ButtonPrimary>
                   <ButtonGhost
                     disabled={
-                      !tokenStatus?.configured ||
-                      deleteTokenMutation.isPending
+                      !tokenStatus?.configured || deleteTokenMutation.isPending
                     }
                     onClick={() => deleteTokenMutation.mutate()}
                   >
@@ -568,9 +568,7 @@ export function DashboardApp(d: TradingDashboard) {
                   <ButtonPrimary
                     className='w-full'
                     disabled={createUserMutation.isPending}
-                    onClick={() =>
-                      createUserMutation.mutate(createUserForm)
-                    }
+                    onClick={() => createUserMutation.mutate(createUserForm)}
                   >
                     {createUserMutation.isPending ? 'Creating…' : 'Create user'}
                   </ButtonPrimary>
@@ -614,10 +612,7 @@ function AnalyticsPanel({
   const ls = logSummary;
   return (
     <div className='grid gap-2 sm:grid-cols-2 lg:grid-cols-3'>
-      <MiniStat
-        label='Total trades'
-        value={String(ls?.totalTrades ?? 0)}
-      />
+      <MiniStat label='Total trades' value={String(ls?.totalTrades ?? 0)} />
       <MiniStat label='Open trades' value={String(ls?.openTrades ?? 0)} />
       <MiniStat
         label='Profit factor'
@@ -629,9 +624,7 @@ function AnalyticsPanel({
       />
       <MiniStat
         label='Win rate'
-        value={
-          analytics ? `${(analytics.winRate * 100).toFixed(1)}%` : '—'
-        }
+        value={analytics ? `${(analytics.winRate * 100).toFixed(1)}%` : '—'}
       />
       <MiniStat
         label='Gross profit'
@@ -736,8 +729,7 @@ function AdminUserRow({ user }: { user: AdminUser }) {
       </div>
       <div className='text-right text-xs text-muted-foreground'>
         <p>
-          Token:{' '}
-          {user.token.tokenLast4 ? `••••${user.token.tokenLast4}` : '—'}
+          Token: {user.token.tokenLast4 ? `••••${user.token.tokenLast4}` : '—'}
         </p>
         <p>{formatDate(user.token.tokenUpdatedAt)}</p>
       </div>

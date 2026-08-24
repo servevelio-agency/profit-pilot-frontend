@@ -33,6 +33,7 @@ const poll = {
 };
 
 function useTradingDashboardInternal() {
+  const [instrumentPollMs, setInstrumentPollMs] = useState<number>(1000);
   const queryClient = useQueryClient();
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
@@ -124,7 +125,7 @@ function useTradingDashboardInternal() {
       queryFn: async () =>
         (await tradingAPI.getInstrumentState(instrument.symbol)).data,
       enabled: !!currentUser,
-      refetchInterval: 8000,
+      refetchInterval: instrumentPollMs,
       placeholderData: (previousData: InstrumentState | undefined) =>
         previousData,
       ...poll,
@@ -145,13 +146,11 @@ function useTradingDashboardInternal() {
     }
   );
 
-  const instrumentStateMeta = (instrumentsQuery.data || []).map(
-    (_, index) => ({
-      isFetching: instrumentStateQueries[index]?.isFetching ?? false,
-      isError: instrumentStateQueries[index]?.isError ?? false,
-      dataUpdatedAt: instrumentStateQueries[index]?.dataUpdatedAt ?? 0,
-    })
-  );
+  const instrumentStateMeta = (instrumentsQuery.data || []).map((_, index) => ({
+    isFetching: instrumentStateQueries[index]?.isFetching ?? false,
+    isError: instrumentStateQueries[index]?.isError ?? false,
+    dataUpdatedAt: instrumentStateQueries[index]?.dataUpdatedAt ?? 0,
+  }));
 
   const refreshAll = async () => {
     setGlobalError(null);
@@ -446,6 +445,8 @@ function useTradingDashboardInternal() {
     logSummary,
     tokenStatus,
     adminUsers,
+    instrumentPollMs,
+    setInstrumentPollMs,
   };
 }
 
