@@ -1,3 +1,7 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+
 export function Alert({
   children,
   tone,
@@ -146,14 +150,45 @@ export function NumberField({
   value: number;
   onChange: (value: number) => void;
 }) {
+  const [text, setText] = useState(() =>
+    value === null || value === undefined || Number.isNaN(Number(value))
+      ? ''
+      : String(value)
+  );
+  const lastEmitted = useRef(value);
+
+  useEffect(() => {
+    if (value === lastEmitted.current) return;
+    lastEmitted.current = value;
+    setText(
+      value === null || value === undefined || Number.isNaN(Number(value))
+        ? ''
+        : String(value)
+    );
+  }, [value]);
+
   return (
     <label className='block text-sm'>
       <span className='mb-1.5 block text-muted-foreground'>{label}</span>
       <input
-        type='number'
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className='w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground'
+        type='text'
+        inputMode='decimal'
+        value={text}
+        onChange={(event) => {
+          const raw = event.target.value;
+          if (raw === '') {
+            setText('');
+            return;
+          }
+          if (!/^-?\d*\.?\d*$/.test(raw)) return;
+          setText(raw);
+          if (raw === '-' || raw === '.' || raw === '-.') return;
+          const parsed = Number(raw);
+          if (!Number.isFinite(parsed)) return;
+          lastEmitted.current = parsed;
+          onChange(parsed);
+        }}
+        className='w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring'
       />
     </label>
   );
