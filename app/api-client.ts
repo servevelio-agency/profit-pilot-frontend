@@ -164,6 +164,10 @@ export interface InstrumentState {
     signal: string;
     buy_price: number;
     timestamp: string;
+    profit?: number | null;
+    bid_price?: number | null;
+    takeProfitAmount?: number;
+    stopLossAmount?: number;
   } | null;
   recentTrades: Array<Record<string, unknown>>;
 }

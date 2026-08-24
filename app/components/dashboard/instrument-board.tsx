@@ -203,13 +203,38 @@ function InstrumentRow({
 
           <div className='mt-4 rounded-lg border border-border/80 bg-background/40 px-3 py-2.5 text-sm'>
             {open ? (
-              <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1'>
-                <span className='font-medium text-foreground'>
-                  Open: {open.signal} @ ${open.buy_price}
-                </span>
-                <span className='font-mono text-xs text-muted-foreground'>
-                  #{open.contract_id}
-                </span>
+              <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+                <div className='min-w-0'>
+                  <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1'>
+                    <span className='font-medium text-foreground'>
+                      Open: {open.signal} @ ${open.buy_price}
+                    </span>
+                    <span className='font-mono text-xs text-muted-foreground'>
+                      #{open.contract_id}
+                    </span>
+                  </div>
+                  <p className='mt-1 text-xs text-muted-foreground'>
+                    TP{' '}
+                    {open.takeProfitAmount
+                      ? `$${open.takeProfitAmount}`
+                      : 'off'}{' '}
+                    · SL{' '}
+                    {open.stopLossAmount ? `$${open.stopLossAmount}` : 'off'}
+                    {open.profit != null
+                      ? ` · P/L ${open.profit >= 0 ? '+' : ''}${Number(open.profit).toFixed(2)}`
+                      : ''}
+                    {open.bid_price != null
+                      ? ` · value $${Number(open.bid_price).toFixed(2)}`
+                      : ''}
+                  </p>
+                </div>
+                <ButtonPrimary
+                  className='bg-destructive text-destructive-foreground hover:opacity-90 sm:shrink-0'
+                  disabled={busy || updatePending}
+                  onClick={onClose}
+                >
+                  Sell / close
+                </ButtonPrimary>
               </div>
             ) : (
               <span className='text-muted-foreground'>No open position</span>
@@ -237,7 +262,7 @@ function InstrumentRow({
             disabled={busy || updatePending || !open}
             onClick={onClose}
           >
-            Close
+            {open ? 'Sell / close' : 'No position'}
           </ButtonPrimary>
           <ButtonDangerOutline
             className='lg:min-w-[7rem]'
