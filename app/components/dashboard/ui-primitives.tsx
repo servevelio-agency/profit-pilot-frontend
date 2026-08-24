@@ -293,3 +293,38 @@ export function ButtonDangerOutline({
     </button>
   );
 }
+
+export function Tooltip({
+  content,
+  children,
+}: {
+  content: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div
+      className='relative inline-block'
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      <div
+        onFocus={() => setVisible(true)}
+        onBlur={() => setVisible(false)}
+        tabIndex={0}
+        className='inline-block'
+      >
+        {children}
+      </div>
+      {visible && (
+        <div
+          role='tooltip'
+          className='absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-md border border-border bg-card/95 p-2 text-xs text-muted-foreground'
+        >
+          {content}
+        </div>
+      )}
+    </div>
+  );
+}

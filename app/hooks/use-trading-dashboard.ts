@@ -67,7 +67,7 @@ function useTradingDashboardInternal() {
     queryKey: ['dashboard', 'health'],
     queryFn: async () => (await tradingAPI.getHealth()).data,
     enabled: !!currentUser,
-    refetchInterval: 20000,
+    refetchInterval: 5000,
     ...poll,
   });
 
@@ -75,7 +75,7 @@ function useTradingDashboardInternal() {
     queryKey: ['dashboard', 'token'],
     queryFn: async () => (await tradingAPI.getTokenStatus()).data,
     enabled: !!currentUser,
-    refetchInterval: 20000,
+    refetchInterval: 5000,
     ...poll,
   });
 
@@ -83,7 +83,7 @@ function useTradingDashboardInternal() {
     queryKey: ['dashboard', 'instruments'],
     queryFn: async () => (await tradingAPI.getInstruments()).data,
     enabled: !!currentUser,
-    refetchInterval: 20000,
+    refetchInterval: 5000,
     ...poll,
   });
 
@@ -91,7 +91,7 @@ function useTradingDashboardInternal() {
     queryKey: ['dashboard', 'logs'],
     queryFn: async () => (await tradingAPI.getLogs(20)).data,
     enabled: !!currentUser,
-    refetchInterval: 20000,
+    refetchInterval: 5000,
     ...poll,
   });
 
@@ -99,7 +99,7 @@ function useTradingDashboardInternal() {
     queryKey: ['dashboard', 'log-summary'],
     queryFn: async () => (await tradingAPI.getLogsSummary()).data,
     enabled: !!currentUser,
-    refetchInterval: 20000,
+    refetchInterval: 5000,
     ...poll,
   });
 
@@ -107,7 +107,7 @@ function useTradingDashboardInternal() {
     queryKey: ['dashboard', 'analytics'],
     queryFn: async () => (await tradingAPI.getAnalyticsSummary(50)).data,
     enabled: !!currentUser,
-    refetchInterval: 20000,
+    refetchInterval: 5000,
     ...poll,
   });
 
@@ -115,7 +115,7 @@ function useTradingDashboardInternal() {
     queryKey: ['admin', 'users'],
     queryFn: async () => (await tradingAPI.getAdminUsers()).data,
     enabled: isAdmin,
-    refetchInterval: 20000,
+    refetchInterval: 5000,
     ...poll,
   });
 

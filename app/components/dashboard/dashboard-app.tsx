@@ -22,6 +22,7 @@ import {
   Panel,
   SelectField,
   TextField,
+  Tooltip,
 } from './ui-primitives';
 
 type MainSection = 'overview' | 'token' | 'performance' | 'activity' | 'admin';
@@ -139,17 +140,24 @@ export function DashboardApp(d: TradingDashboard) {
               <ButtonGhost onClick={() => refreshAll()} className='text-sm'>
                 Refresh all
               </ButtonGhost>
-              <ButtonGhost
-                onClick={() =>
-                  // toggle between 1s live updates and 8s low-frequency
-                  d.setInstrumentPollMs?.(
-                    d.instrumentPollMs === 1000 ? 8000 : 1000
-                  )
+
+              <Tooltip
+                content={
+                  <span>Toggle live updates: 1s (Live ON) / 8s (Live OFF)</span>
                 }
-                className='text-sm'
               >
-                {d.instrumentPollMs === 1000 ? 'Live: ON' : 'Live: OFF'}
-              </ButtonGhost>
+                <ButtonGhost
+                  onClick={() =>
+                    // toggle between 1s live updates and 8s low-frequency
+                    d.setInstrumentPollMs?.(
+                      d.instrumentPollMs === 1000 ? 8000 : 1000
+                    )
+                  }
+                  className='text-sm'
+                >
+                  {d.instrumentPollMs === 1000 ? 'Live: ON' : 'Live: OFF'}
+                </ButtonGhost>
+              </Tooltip>
               <ButtonGhost
                 disabled={logoutMutation.isPending}
                 onClick={() => logoutMutation.mutate()}
