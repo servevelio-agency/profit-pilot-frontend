@@ -105,7 +105,8 @@ function useTradingDashboardInternal() {
 
   const analyticsQuery = useQuery({
     queryKey: ['dashboard', 'analytics'],
-    queryFn: async () => (await tradingAPI.getAnalyticsSummary(50)).data,
+    queryFn: async () =>
+      (await tradingAPI.getAnalyticsSummary({ limit: 50 })).data,
     enabled: !!currentUser,
     refetchInterval: 5000,
     ...poll,
