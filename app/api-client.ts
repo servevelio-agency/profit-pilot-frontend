@@ -107,6 +107,25 @@ export interface AnalyticsBySymbolRow {
   wins: number;
   losses: number;
   netProfit: number;
+  grossProfit?: number;
+  grossLoss?: number;
+  winRate?: number;
+  profitFactor?: number | null;
+  avgProfit?: number | null;
+  medianProfit?: number | null;
+  byTimeFrame?: Array<{
+    timeFrame: string | null;
+    closedTrades: number;
+    wins: number;
+    losses: number;
+    netProfit: number;
+    grossProfit: number;
+    grossLoss: number;
+    avgProfit?: number | null;
+    medianProfit?: number | null;
+    winRate?: number;
+    profitFactor?: number | null;
+  }>;
 }
 
 export interface AnalyticsSummary {
@@ -186,8 +205,18 @@ export const tradingAPI = {
   getHealth: () => apiClient.get<HealthResponse>('/health'),
   getLogs: (limit = 20) => apiClient.get<LogEntry[]>(`/logs?limit=${limit}`),
   getLogsSummary: () => apiClient.get<LogSummary>('/logs/summary'),
-  getAnalyticsSummary: (limit = 50) =>
-    apiClient.get<AnalyticsSummary>(`/analytics/summary?limit=${limit}`),
+  getAnalyticsSummary: (opts?: {
+    limit?: number;
+    page?: number;
+    pageSize?: number;
+  }) => {
+    const limit = opts?.limit ?? 50;
+    const page = opts?.page ?? 1;
+    const pageSize = opts?.pageSize ?? Math.min(14, limit);
+    return apiClient.get<AnalyticsSummary>(
+      `/analytics/summary?limit=${limit}&page=${page}&pageSize=${pageSize}`
+    );
+  },
 
   getTokenStatus: () => apiClient.get<TokenStatus>('/user/token'),
   saveToken: (derivToken: string) =>
@@ -205,10 +234,7 @@ export const tradingAPI = {
       message: string;
       instrument: InstrumentConfig;
     }>('/instruments', config),
-  updateInstrument: (
-    symbol: string,
-    updates: Partial<InstrumentConfig>
-  ) =>
+  updateInstrument: (symbol: string, updates: Partial<InstrumentConfig>) =>
     apiClient.put<{
       success: boolean;
       message: string;
@@ -230,5 +256,6 @@ export const tradingAPI = {
     email: string;
     password: string;
     role: 'user' | 'admin';
-  }) => apiClient.post<{ success: boolean; user: User }>('/admin/users', payload),
+  }) =>
+    apiClient.post<{ success: boolean; user: User }>('/admin/users', payload),
 };

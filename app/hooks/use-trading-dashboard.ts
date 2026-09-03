@@ -111,6 +111,24 @@ function useTradingDashboardInternal() {
     ...poll,
   });
 
+  const [tradesPage, setTradesPage] = useState<number>(1);
+  const [tradesPageSize, setTradesPageSize] = useState<number>(14);
+
+  const analyticsQueryWithPage = useQuery({
+    queryKey: ['dashboard', 'analytics', tradesPage, tradesPageSize],
+    queryFn: async () =>
+      (
+        await tradingAPI.getAnalyticsSummary({
+          limit: 200,
+          page: tradesPage,
+          pageSize: tradesPageSize,
+        })
+      ).data,
+    enabled: !!currentUser,
+    refetchInterval: 5000,
+    ...poll,
+  });
+
   const usersQuery = useQuery({
     queryKey: ['admin', 'users'],
     queryFn: async () => (await tradingAPI.getAdminUsers()).data,
@@ -390,7 +408,7 @@ function useTradingDashboardInternal() {
   const userCount = healthQuery.data?.trading.users ?? 0;
   const health = healthQuery.data;
   const logs = logsQuery.data || [];
-  const analytics = analyticsQuery.data;
+  const analytics = analyticsQueryWithPage.data || analyticsQuery.data;
   const logSummary = logSummaryQuery.data;
   const tokenStatus = tokenQuery.data;
   const adminUsers = usersQuery.data || [];
@@ -442,6 +460,10 @@ function useTradingDashboardInternal() {
     health,
     logs,
     analytics,
+    tradesPage,
+    setTradesPage,
+    tradesPageSize,
+    setTradesPageSize,
     logSummary,
     tokenStatus,
     adminUsers,

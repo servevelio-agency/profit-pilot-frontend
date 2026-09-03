@@ -484,8 +484,17 @@ export function DashboardApp(d: TradingDashboard) {
               <Panel title='Analytics snapshot'>
                 <AnalyticsPanel analytics={analytics} logSummary={logSummary} />
               </Panel>
+              <Panel title='Per-instrument stats'>
+                <PerInstrumentTable rows={analytics?.bySymbol || []} />
+              </Panel>
               <Panel title='Latest closed trades'>
-                <LatestTradesTable rows={analytics?.latest || []} />
+                <LatestTradesTable
+                  rows={analytics?.latest || []}
+                  page={d.tradesPage}
+                  pageSize={d.tradesPageSize}
+                  setPage={d.setTradesPage}
+                  total={analytics?.closedTrades ?? null}
+                />
               </Panel>
             </>
           )}
@@ -646,10 +655,95 @@ function AnalyticsPanel({
   );
 }
 
-function LatestTradesTable({ rows }: { rows: AnalyticsSummary['latest'] }) {
-  if (rows.length === 0) {
+function LatestTradesTable({
+  rows,
+  page,
+  pageSize,
+  setPage,
+  total,
+}: {
+  rows: AnalyticsSummary['latest'];
+  page: number;
+  pageSize: number;
+  setPage: (n: number) => void;
+  total: number | null;
+}) {
+  if (!rows || rows.length === 0) {
     return (
       <p className='text-sm text-muted-foreground'>No closed trades yet.</p>
+    );
+  }
+  return (
+    <div>
+      <div className='overflow-x-auto'>
+        <table className='w-full text-left text-sm'>
+          <thead className='text-xs text-muted-foreground'>
+            <tr>
+              <th className='pb-2 font-medium'>Symbol</th>
+              <th className='pb-2 font-medium'>Date</th>
+              <th className='pb-2 font-medium'>Contract</th>
+              <th className='pb-2 text-right font-medium'>Buy</th>
+              <th className='pb-2 text-right font-medium'>Sold</th>
+              <th className='pb-2 text-right font-medium'>P/L</th>
+            </tr>
+          </thead>
+          <tbody className='divide-y divide-border'>
+            {rows.map((row) => (
+              <tr key={`${row.contract_id ?? 'na'}-${row.createdAt}`}>
+                <td className='py-2.5'>{row.symbol ?? '—'}</td>
+                <td className='py-2.5 text-xs text-muted-foreground'>
+                  {formatDate(row.createdAt)}
+                </td>
+                <td className='py-2.5 font-mono text-xs text-muted-foreground'>
+                  {row.contract_id ?? '—'}
+                </td>
+                <td className='py-2.5 text-right tabular-nums'>
+                  {formatMoney(row.buy_price)}
+                </td>
+                <td className='py-2.5 text-right tabular-nums'>
+                  {formatMoney(row.sold_for)}
+                </td>
+                <td
+                  className={`py-2.5 text-right font-medium tabular-nums ${
+                    (row.profit ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  }`}
+                >
+                  {formatMoney(row.profit)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className='mt-2 flex items-center justify-between text-sm'>
+        <div className='text-muted-foreground'>
+          Page {page} {total ? `of ${Math.ceil(total / pageSize)}` : ''}
+        </div>
+        <div className='flex gap-2'>
+          <button
+            className='rounded border px-2 py-1 text-xs'
+            onClick={() => setPage(Math.max(1, page - 1))}
+            disabled={page <= 1}
+          >
+            Prev
+          </button>
+          <button
+            className='rounded border px-2 py-1 text-xs'
+            onClick={() => setPage(page + 1)}
+            disabled={Boolean(total) && page * pageSize >= (total ?? 0)}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PerInstrumentTable({ rows }: { rows: AnalyticsSummary['bySymbol'] }) {
+  if (!rows || rows.length === 0) {
+    return (
+      <p className='text-sm text-muted-foreground'>No instrument stats yet.</p>
     );
   }
   return (
@@ -658,31 +752,37 @@ function LatestTradesTable({ rows }: { rows: AnalyticsSummary['latest'] }) {
         <thead className='text-xs text-muted-foreground'>
           <tr>
             <th className='pb-2 font-medium'>Symbol</th>
-            <th className='pb-2 font-medium'>Contract</th>
-            <th className='pb-2 text-right font-medium'>Buy</th>
-            <th className='pb-2 text-right font-medium'>Sold</th>
-            <th className='pb-2 text-right font-medium'>P/L</th>
+            <th className='pb-2 text-right font-medium'>Closed</th>
+            <th className='pb-2 text-right font-medium'>Win rate</th>
+            <th className='pb-2 text-right font-medium'>Net P/L</th>
+            <th className='pb-2 text-right font-medium'>Gross profit</th>
+            <th className='pb-2 text-right font-medium'>Gross loss</th>
+            <th className='pb-2 text-right font-medium'>Profit factor</th>
           </tr>
         </thead>
         <tbody className='divide-y divide-border'>
-          {rows.slice(0, 14).map((row) => (
-            <tr key={`${row.contract_id ?? 'na'}-${row.createdAt}`}>
-              <td className='py-2.5'>{row.symbol ?? '—'}</td>
-              <td className='py-2.5 font-mono text-xs text-muted-foreground'>
-                {row.contract_id ?? '—'}
+          {rows.map((r) => (
+            <tr key={String(r.symbol)}>
+              <td className='py-2.5'>{r.symbol ?? '—'}</td>
+              <td className='py-2.5 text-right tabular-nums'>
+                {String(r.closedTrades ?? 0)}
               </td>
               <td className='py-2.5 text-right tabular-nums'>
-                {formatMoney(row.buy_price)}
+                {typeof r.winRate === 'number'
+                  ? `${(r.winRate * 100).toFixed(1)}%`
+                  : '—'}
               </td>
               <td className='py-2.5 text-right tabular-nums'>
-                {formatMoney(row.sold_for)}
+                {formatMoney(r.netProfit ?? 0)}
               </td>
-              <td
-                className={`py-2.5 text-right font-medium tabular-nums ${
-                  (row.profit ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
-                }`}
-              >
-                {formatMoney(row.profit)}
+              <td className='py-2.5 text-right tabular-nums'>
+                {formatMoney(r.grossProfit ?? 0)}
+              </td>
+              <td className='py-2.5 text-right tabular-nums'>
+                {formatMoney(r.grossLoss ?? 0)}
+              </td>
+              <td className='py-2.5 text-right tabular-nums'>
+                {r.profitFactor == null ? '—' : r.profitFactor.toFixed(2)}
               </td>
             </tr>
           ))}
