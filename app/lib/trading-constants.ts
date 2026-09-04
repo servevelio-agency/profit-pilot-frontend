@@ -7,6 +7,7 @@ export const DEFAULT_NEW_INSTRUMENT: InstrumentConfig = {
   timeFrame: '5m',
   historyDepth: 500,
   positionSize: 10,
+  strategy: 'standard_accumulative_deficit',
   multiplier: 100,
   stopLossAmount: 0,
   takeProfitAmount: 0,

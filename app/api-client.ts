@@ -142,6 +142,11 @@ export interface AnalyticsSummary {
   latest: TradeCloseAnalyticsRow[];
 }
 
+export type InstrumentRecoveryStrategy =
+  | 'fixed_isolated_stake'
+  | 'standard_accumulative_deficit'
+  | 'aggressive_single_loss_multiplier';
+
 export interface InstrumentConfig {
   id?: string;
   userId?: string;
@@ -151,6 +156,7 @@ export interface InstrumentConfig {
   timeFrame: string;
   historyDepth: number;
   positionSize: number;
+  strategy?: InstrumentRecoveryStrategy;
   multiplier: number;
   /** Max loss in USD before Deriv auto-closes multiplier (0 = off) */
   stopLossAmount?: number;

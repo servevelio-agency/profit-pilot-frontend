@@ -101,6 +101,7 @@ function InstrumentRow({
       timeFrame: c.timeFrame,
       historyDepth: c.historyDepth,
       positionSize: c.positionSize,
+      strategy: c.strategy ?? 'standard_accumulative_deficit',
       multiplier: c.multiplier,
       stopLossAmount: c.stopLossAmount ?? 0,
       takeProfitAmount: c.takeProfitAmount ?? 0,
@@ -123,6 +124,7 @@ function InstrumentRow({
         timeFrame: draft.timeFrame,
         historyDepth: draft.historyDepth,
         positionSize: draft.positionSize,
+        strategy: draft.strategy ?? 'standard_accumulative_deficit',
         multiplier: draft.multiplier,
         stopLossAmount: draft.stopLossAmount,
         takeProfitAmount: draft.takeProfitAmount,
@@ -139,6 +141,19 @@ function InstrumentRow({
   const open = instrument.openPosition;
   const trend = instrument.signal?.state ?? '—';
   const signal = instrument.signal?.signal ?? '—';
+  const strategyLabel =
+    instrument.config.strategy === 'fixed_isolated_stake'
+      ? 'Fixed Isolated Stake'
+      : instrument.config.strategy === 'aggressive_single_loss_multiplier'
+        ? 'Aggressive Single-Loss Multiplier'
+        : 'Standard Accumulative Deficit';
+
+  const strategyBadgeClass =
+    instrument.config.strategy === 'fixed_isolated_stake'
+      ? 'bg-slate-500/15 text-slate-200'
+      : instrument.config.strategy === 'aggressive_single_loss_multiplier'
+        ? 'bg-amber-500/15 text-amber-200'
+        : 'bg-cyan-500/15 text-cyan-200';
 
   return (
     <div
@@ -163,6 +178,11 @@ function InstrumentRow({
             >
               {instrument.config.enabled ? 'Active' : 'Paused'}
             </span>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${strategyBadgeClass}`}
+            >
+              {strategyLabel}
+            </span>
             {syncing && (
               <span className='flex items-center gap-1.5 text-[11px] text-muted-foreground'>
                 <span className='h-1.5 w-1.5 animate-pulse rounded-full bg-primary' />
@@ -180,7 +200,7 @@ function InstrumentRow({
             {instrument.config.longEmaPeriod} • {instrument.config.timeFrame}
           </p>
 
-          <div className='mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6'>
+          <div className='mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7'>
             <MiniStat label='Trend' value={trend} />
             <MiniStat label='Signal' value={signal} />
             <MiniStat
@@ -188,9 +208,17 @@ function InstrumentRow({
               value={`$${instrument.config.positionSize}`}
             />
             <MiniStat
-              label='Lev.'
-              value={`${instrument.config.multiplier}x`}
+              label='Strategy'
+              value={
+                instrument.config.strategy === 'fixed_isolated_stake'
+                  ? 'Fixed'
+                  : instrument.config.strategy ===
+                      'aggressive_single_loss_multiplier'
+                    ? 'Aggressive'
+                    : 'Standard'
+              }
             />
+            <MiniStat label='Lev.' value={`${instrument.config.multiplier}x`} />
             <MiniStat
               label='SL / TP'
               value={`${instrument.config.stopLossAmount ?? '—'} / ${instrument.config.takeProfitAmount ?? '—'}`}
@@ -316,6 +344,33 @@ function InstrumentRow({
                 setDraft((prev) => ({ ...prev, positionSize: value }))
               }
             />
+            <SelectField
+              label='Strategy'
+              value={draft.strategy ?? 'standard_accumulative_deficit'}
+              onChange={(value) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  strategy: value as
+                    | 'fixed_isolated_stake'
+                    | 'standard_accumulative_deficit'
+                    | 'aggressive_single_loss_multiplier',
+                }))
+              }
+              options={[
+                {
+                  value: 'fixed_isolated_stake',
+                  label: 'Fixed Isolated Stake',
+                },
+                {
+                  value: 'standard_accumulative_deficit',
+                  label: 'Standard Accumulative Deficit',
+                },
+                {
+                  value: 'aggressive_single_loss_multiplier',
+                  label: 'Aggressive Single-Loss Multiplier',
+                },
+              ]}
+            />
             <NumberField
               label='Multiplier'
               value={draft.multiplier ?? 100}
@@ -353,10 +408,7 @@ function InstrumentRow({
             />
           </div>
           <div className='mt-4 flex flex-wrap gap-2'>
-            <ButtonPrimary
-              disabled={updatePending}
-              onClick={submitEdit}
-            >
+            <ButtonPrimary disabled={updatePending} onClick={submitEdit}>
               {updatePending ? 'Saving…' : 'Save changes'}
             </ButtonPrimary>
             <ButtonGhost disabled={updatePending} onClick={cancelEdit}>

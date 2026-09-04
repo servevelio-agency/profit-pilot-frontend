@@ -346,6 +346,36 @@ export function DashboardApp(d: TradingDashboard) {
                         }))
                       }
                     />
+                    <SelectField
+                      label='Recovery strategy'
+                      value={
+                        newInstrument.strategy ??
+                        'standard_accumulative_deficit'
+                      }
+                      onChange={(value) =>
+                        setNewInstrument((prev) => ({
+                          ...prev,
+                          strategy: value as
+                            | 'fixed_isolated_stake'
+                            | 'standard_accumulative_deficit'
+                            | 'aggressive_single_loss_multiplier',
+                        }))
+                      }
+                      options={[
+                        {
+                          value: 'fixed_isolated_stake',
+                          label: 'Fixed Isolated Stake',
+                        },
+                        {
+                          value: 'standard_accumulative_deficit',
+                          label: 'Standard Accumulative Deficit',
+                        },
+                        {
+                          value: 'aggressive_single_loss_multiplier',
+                          label: 'Aggressive Single-Loss Multiplier',
+                        },
+                      ]}
+                    />
                     <NumberField
                       label='Multiplier'
                       value={newInstrument.multiplier}
