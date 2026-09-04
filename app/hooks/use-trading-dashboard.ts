@@ -33,7 +33,7 @@ const poll = {
 };
 
 function useTradingDashboardInternal() {
-  const [instrumentPollMs, setInstrumentPollMs] = useState<number>(1000);
+  const [instrumentPollMs, setInstrumentPollMs] = useState<number>(8000);
   const queryClient = useQueryClient();
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
@@ -168,6 +168,9 @@ function useTradingDashboardInternal() {
   const instrumentStateMeta = (instrumentsQuery.data || []).map((_, index) => ({
     isFetching: instrumentStateQueries[index]?.isFetching ?? false,
     isError: instrumentStateQueries[index]?.isError ?? false,
+    errorMessage: instrumentStateQueries[index]?.error
+      ? String(instrumentStateQueries[index]?.error)
+      : null,
     dataUpdatedAt: instrumentStateQueries[index]?.dataUpdatedAt ?? 0,
   }));
 

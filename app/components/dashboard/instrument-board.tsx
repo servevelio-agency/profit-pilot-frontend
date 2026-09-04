@@ -28,7 +28,11 @@ export function InstrumentBoard({
   updatePendingSymbol,
 }: {
   rows: InstrumentState[];
-  meta: Array<{ isFetching: boolean; isError: boolean }>;
+  meta: Array<{
+    isFetching: boolean;
+    isError: boolean;
+    errorMessage?: string | null;
+  }>;
   busy: boolean;
   onToggle: (symbol: string) => void;
   onClose: (symbol: string) => void;
@@ -55,6 +59,7 @@ export function InstrumentBoard({
           instrument={instrument}
           syncing={meta[index]?.isFetching ?? false}
           failed={meta[index]?.isError ?? false}
+          errorMessage={meta[index]?.errorMessage ?? null}
           busy={busy}
           updatePending={updatePendingSymbol === instrument.symbol}
           onToggle={() => onToggle(instrument.symbol)}
@@ -73,6 +78,7 @@ function InstrumentRow({
   instrument,
   syncing,
   failed,
+  errorMessage,
   busy,
   updatePending,
   onToggle,
@@ -83,6 +89,7 @@ function InstrumentRow({
   instrument: InstrumentState;
   syncing: boolean;
   failed: boolean;
+  errorMessage: string | null;
   busy: boolean;
   updatePending: boolean;
   onToggle: () => void;
@@ -141,6 +148,9 @@ function InstrumentRow({
   const open = instrument.openPosition;
   const trend = instrument.signal?.state ?? '—';
   const signal = instrument.signal?.signal ?? '—';
+  const rateLimited =
+    !!errorMessage &&
+    /rate limit|requests per second|too many requests|429/i.test(errorMessage);
   const strategyLabel =
     instrument.config.strategy === 'fixed_isolated_stake'
       ? 'Fixed Isolated Stake'
@@ -189,7 +199,12 @@ function InstrumentRow({
                 Syncing
               </span>
             )}
-            {failed && !syncing && (
+            {rateLimited && (
+              <span className='rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-200'>
+                Rate-limited / Backoff
+              </span>
+            )}
+            {!rateLimited && failed && !syncing && (
               <span className='text-[11px] text-destructive'>
                 Live data error
               </span>
