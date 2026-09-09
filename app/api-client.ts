@@ -43,6 +43,35 @@ export interface TokenStatus {
   tokenLast4: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  mt5Configured: boolean;
+  mt5LoginLast4: string | null;
+  mt5AccountLast4: string | null;
+  derivConnected: boolean;
+  mt5ReadyForTesting: boolean;
+  mt5LiveBridgeAvailable: boolean;
+  brokerStatus?: {
+    deriv: {
+      configured: boolean;
+      status: 'connected' | 'not_configured';
+      liveBridgeAvailable: boolean;
+      readyForTesting: boolean;
+    };
+    mt5: {
+      configured: boolean;
+      status: 'configured' | 'not_configured';
+      bridgeStatus: 'disabled_until_bridge';
+      liveBridgeAvailable: boolean;
+      readyForTesting: boolean;
+    };
+  };
+}
+
+export interface BrokerCredentialPayload {
+  derivToken?: string;
+  mt5Login?: string;
+  mt5Password?: string;
+  mt5Server?: string;
+  mt5AccountNumber?: string;
 }
 
 export interface AdminUser extends User {
@@ -73,6 +102,12 @@ export interface HealthResponse {
     totalInstruments: number;
     activeInstruments: number;
     monitoringIntervalMs: number;
+  };
+  mt5Bridge?: {
+    enabled: boolean;
+    liveBridgeAvailable: boolean;
+    status: 'live_ready' | 'disabled_until_bridge';
+    message: string;
   };
 }
 
@@ -235,10 +270,12 @@ export const tradingAPI = {
   },
 
   getTokenStatus: () => apiClient.get<TokenStatus>('/user/token'),
-  saveToken: (derivToken: string) =>
-    apiClient.put<{ success: boolean; tokenLast4: string }>('/user/token', {
-      derivToken,
-    }),
+  saveToken: (payload: BrokerCredentialPayload) =>
+    apiClient.put<{
+      success: boolean;
+      tokenLast4?: string | null;
+      mt5Configured: boolean;
+    }>('/user/token', payload),
   deleteToken: () => apiClient.delete<{ success: boolean }>('/user/token'),
 
   getInstruments: () => apiClient.get<InstrumentConfig[]>('/instruments'),

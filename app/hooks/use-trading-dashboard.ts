@@ -42,6 +42,12 @@ function useTradingDashboardInternal() {
     password: '',
   });
   const [tokenInput, setTokenInput] = useState('');
+  const [mt5Credentials, setMt5Credentials] = useState({
+    login: '',
+    password: '',
+    server: '',
+    accountNumber: '',
+  });
   const [newInstrument, setNewInstrument] = useState<InstrumentConfig>(
     DEFAULT_NEW_INSTRUMENT
   );
@@ -211,12 +217,23 @@ function useTradingDashboardInternal() {
   });
 
   const saveTokenMutation = useMutation({
-    mutationFn: async (token: string) =>
-      (await tradingAPI.saveToken(token)).data,
+    mutationFn: async (payload: {
+      derivToken?: string;
+      mt5Login?: string;
+      mt5Password?: string;
+      mt5Server?: string;
+      mt5AccountNumber?: string;
+    }) => (await tradingAPI.saveToken(payload)).data,
     onSuccess: async () => {
       setTokenInput('');
+      setMt5Credentials({
+        login: '',
+        password: '',
+        server: '',
+        accountNumber: '',
+      });
       setGlobalError(null);
-      setGlobalSuccess('Deriv token saved successfully');
+      setGlobalSuccess('Broker credentials saved successfully');
       setTimeout(() => setGlobalSuccess(null), 3000);
       await queryClient.invalidateQueries({ queryKey: ['dashboard', 'token'] });
       await queryClient.refetchQueries({ queryKey: ['dashboard', 'token'] });
@@ -441,6 +458,8 @@ function useTradingDashboardInternal() {
     setLoginForm,
     tokenInput,
     setTokenInput,
+    mt5Credentials,
+    setMt5Credentials,
     newInstrument,
     setNewInstrument,
     showAddInstrument,

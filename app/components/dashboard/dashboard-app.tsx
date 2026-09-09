@@ -44,6 +44,8 @@ export function DashboardApp(d: TradingDashboard) {
     tokenStatus,
     tokenInput,
     setTokenInput,
+    mt5Credentials,
+    setMt5Credentials,
     saveTokenMutation,
     deleteTokenMutation,
     instrumentStates,
@@ -75,6 +77,13 @@ export function DashboardApp(d: TradingDashboard) {
     toggleInstrumentMutation.isPending ||
     closePositionMutation.isPending ||
     removeInstrumentMutation.isPending;
+
+  const mt5BridgeEnabled = Boolean(health?.mt5Bridge?.enabled);
+  const mt5BridgeStatusText = mt5BridgeEnabled
+    ? health?.mt5Bridge?.status === 'live_ready'
+      ? 'MT5 bridge live'
+      : 'MT5 bridge enabled'
+    : 'MT5 bridge disabled';
 
   const newInstrumentBroker = newInstrument.brokerType ?? 'deriv_ws';
   const newInstrumentAssetClass =
@@ -538,43 +547,208 @@ export function DashboardApp(d: TradingDashboard) {
 
           {section === 'token' && (
             <Panel
-              title='Deriv API token'
+              title='Broker credentials'
               actions={
-                tokenStatus?.configured ? (
+                tokenStatus?.configured || tokenStatus?.mt5Configured ? (
                   <span className='text-xs text-muted-foreground'>
                     Updated {formatDate(tokenStatus.updatedAt)}
                   </span>
                 ) : null
               }
             >
-              <p className='text-sm text-muted-foreground'>
-                Paste a token with trading permissions. It is encrypted and
-                stored per account.
-              </p>
-              <div className='mt-4 flex flex-col gap-3 lg:flex-row'>
-                <input
-                  type='password'
-                  value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
-                  placeholder='Deriv API token'
-                  className='flex-1 rounded-lg border border-input bg-background px-3 py-2.5 text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring'
-                />
-                <div className='flex flex-wrap gap-2'>
-                  <ButtonPrimary
-                    disabled={!tokenInput || saveTokenMutation.isPending}
-                    onClick={() => saveTokenMutation.mutate(tokenInput)}
-                  >
-                    {saveTokenMutation.isPending ? 'Saving…' : 'Save'}
-                  </ButtonPrimary>
-                  <ButtonGhost
-                    disabled={
-                      !tokenStatus?.configured || deleteTokenMutation.isPending
-                    }
-                    onClick={() => deleteTokenMutation.mutate()}
-                  >
-                    Remove
-                  </ButtonGhost>
+              <div className='mb-5 grid gap-3 sm:grid-cols-3'>
+                <div className='rounded-xl border border-border bg-background/40 p-3'>
+                  <p className='text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground'>
+                    Deriv
+                  </p>
+                  <p className='mt-2 text-sm font-medium text-foreground'>
+                    {tokenStatus?.configured
+                      ? 'Deriv live ready'
+                      : 'Deriv not ready'}
+                  </p>
                 </div>
+                <div className='rounded-xl border border-border bg-background/40 p-3'>
+                  <p className='text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground'>
+                    MT5
+                  </p>
+                  <p className='mt-2 text-sm font-medium text-foreground'>
+                    {tokenStatus?.mt5Configured
+                      ? 'MT5 saved for testing'
+                      : 'MT5 not saved'}
+                  </p>
+                </div>
+                <div className='rounded-xl border border-border bg-background/40 p-3'>
+                  <p className='text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground'>
+                    Bridge
+                  </p>
+                  <p className='mt-2 text-sm font-medium text-foreground'>
+                    {mt5BridgeStatusText}
+                  </p>
+                  {health?.mt5Bridge?.message ? (
+                    <p className='mt-1 text-[11px] text-muted-foreground'>
+                      {health.mt5Bridge.message}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className='grid gap-6 lg:grid-cols-2'>
+                <div className='rounded-xl border border-border bg-background/40 p-4'>
+                  <h3 className='mb-3 text-sm font-semibold text-foreground'>
+                    Deriv
+                  </h3>
+                  <div className='mb-3 flex items-center gap-2'>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                        tokenStatus?.derivConnected
+                          ? 'bg-emerald-500/15 text-emerald-300'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {tokenStatus?.derivConnected
+                        ? 'Connected'
+                        : 'Not configured'}
+                    </span>
+                  </div>
+                  <p className='text-sm text-muted-foreground'>
+                    Paste a token with trading permissions. It is encrypted and
+                    stored per account.
+                  </p>
+                  <div className='mt-4 space-y-3'>
+                    <input
+                      type='password'
+                      value={tokenInput}
+                      onChange={(e) => setTokenInput(e.target.value)}
+                      placeholder='Deriv API token'
+                      className='w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring'
+                    />
+                    {tokenStatus?.configured && (
+                      <p className='text-xs text-muted-foreground'>
+                        Stored token: ••••{tokenStatus.tokenLast4}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className='rounded-xl border border-border bg-background/40 p-4'>
+                  <h3 className='mb-3 text-sm font-semibold text-foreground'>
+                    MT5 / direct bridge
+                  </h3>
+                  <div className='mb-3 flex items-center gap-2'>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                        tokenStatus?.mt5ReadyForTesting
+                          ? 'bg-amber-500/15 text-amber-300'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {tokenStatus?.mt5ReadyForTesting
+                        ? 'Configured but not active'
+                        : 'Not configured'}
+                    </span>
+                    <span className='text-[10px] uppercase tracking-wide text-muted-foreground'>
+                      Live bridge unavailable
+                    </span>
+                  </div>
+                  <p className='text-sm text-muted-foreground'>
+                    These are separate credentials and are not reused from the
+                    Deriv token. They are saved for testing and setup, but the
+                    MT5 live bridge is intentionally disabled until the real
+                    adapter is connected.
+                  </p>
+                  <div className='mt-4 grid gap-3'>
+                    <input
+                      type='text'
+                      value={mt5Credentials.login}
+                      onChange={(e) =>
+                        setMt5Credentials((prev) => ({
+                          ...prev,
+                          login: e.target.value,
+                        }))
+                      }
+                      placeholder='MT5 login'
+                      className='w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring'
+                    />
+                    <input
+                      type='password'
+                      value={mt5Credentials.password}
+                      onChange={(e) =>
+                        setMt5Credentials((prev) => ({
+                          ...prev,
+                          password: e.target.value,
+                        }))
+                      }
+                      placeholder='MT5 password'
+                      className='w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring'
+                    />
+                    <input
+                      type='text'
+                      value={mt5Credentials.server}
+                      onChange={(e) =>
+                        setMt5Credentials((prev) => ({
+                          ...prev,
+                          server: e.target.value,
+                        }))
+                      }
+                      placeholder='MT5 server'
+                      className='w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring'
+                    />
+                    <input
+                      type='text'
+                      value={mt5Credentials.accountNumber}
+                      onChange={(e) =>
+                        setMt5Credentials((prev) => ({
+                          ...prev,
+                          accountNumber: e.target.value,
+                        }))
+                      }
+                      placeholder='MT5 account number'
+                      className='w-full rounded-lg border border-input bg-background px-3 py-2.5 text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring'
+                    />
+                    {tokenStatus?.mt5Configured && (
+                      <p className='text-xs text-muted-foreground'>
+                        Stored MT5 login: ••••{tokenStatus.mt5LoginLast4}
+                        {tokenStatus.mt5AccountLast4
+                          ? ` • account ••••${tokenStatus.mt5AccountLast4}`
+                          : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className='mt-5 flex flex-wrap gap-2'>
+                <ButtonPrimary
+                  disabled={
+                    (!tokenInput &&
+                      !mt5Credentials.login &&
+                      !mt5Credentials.password &&
+                      !mt5Credentials.server &&
+                      !mt5Credentials.accountNumber) ||
+                    saveTokenMutation.isPending
+                  }
+                  onClick={() =>
+                    saveTokenMutation.mutate({
+                      derivToken: tokenInput.trim() || undefined,
+                      mt5Login: mt5Credentials.login.trim() || undefined,
+                      mt5Password: mt5Credentials.password.trim() || undefined,
+                      mt5Server: mt5Credentials.server.trim() || undefined,
+                      mt5AccountNumber:
+                        mt5Credentials.accountNumber.trim() || undefined,
+                    })
+                  }
+                >
+                  {saveTokenMutation.isPending ? 'Saving…' : 'Save credentials'}
+                </ButtonPrimary>
+                <ButtonGhost
+                  disabled={
+                    (!tokenStatus?.configured && !tokenStatus?.mt5Configured) ||
+                    deleteTokenMutation.isPending
+                  }
+                  onClick={() => deleteTokenMutation.mutate()}
+                >
+                  Remove all
+                </ButtonGhost>
               </div>
             </Panel>
           )}
