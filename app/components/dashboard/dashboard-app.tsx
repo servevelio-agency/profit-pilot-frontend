@@ -9,7 +9,11 @@ import type {
 } from '../../api-client';
 import type { TradingDashboard } from '../../hooks/use-trading-dashboard';
 import { formatDate, formatMoney } from '../../lib/format';
-import { SYMBOL_OPTIONS } from '../../lib/trading-constants';
+import {
+  ASSET_CLASS_OPTIONS,
+  BROKER_OPTIONS,
+  SYMBOL_OPTIONS_BY_BROKER_AND_CLASS,
+} from '../../lib/trading-constants';
 import { InstrumentBoard } from './instrument-board';
 import {
   Alert,
@@ -71,6 +75,17 @@ export function DashboardApp(d: TradingDashboard) {
     toggleInstrumentMutation.isPending ||
     closePositionMutation.isPending ||
     removeInstrumentMutation.isPending;
+
+  const newInstrumentBroker = newInstrument.brokerType ?? 'deriv_ws';
+  const newInstrumentAssetClass =
+    newInstrument.assetClass ??
+    (newInstrumentBroker === 'mt5_prime' ? 'Forex' : 'Synthetic Indices');
+  const defaultInstrumentSymbols =
+    SYMBOL_OPTIONS_BY_BROKER_AND_CLASS.deriv_ws['Synthetic Indices'] ?? [];
+  const newInstrumentSymbols =
+    SYMBOL_OPTIONS_BY_BROKER_AND_CLASS[newInstrumentBroker]?.[
+      newInstrumentAssetClass
+    ] ?? defaultInstrumentSymbols;
 
   return (
     <div className='flex min-h-screen bg-background text-foreground'>
@@ -281,12 +296,78 @@ export function DashboardApp(d: TradingDashboard) {
                 {showAddInstrument && (
                   <div className='mb-6 grid gap-3 rounded-xl border border-border bg-background/50 p-4 md:grid-cols-2 xl:grid-cols-4'>
                     <SelectField
+                      label='Broker'
+                      value={newInstrumentBroker}
+                      onChange={(value) => {
+                        const nextBroker = value as 'deriv_ws' | 'mt5_prime';
+                        const fallbackAsset =
+                          nextBroker === 'mt5_prime'
+                            ? 'Forex'
+                            : 'Synthetic Indices';
+                        const nextAsset =
+                          nextBroker === 'deriv_ws'
+                            ? 'Synthetic Indices'
+                            : fallbackAsset;
+                        const brokerSymbols =
+                          SYMBOL_OPTIONS_BY_BROKER_AND_CLASS[nextBroker] ?? {};
+                        const symbols =
+                          brokerSymbols[nextAsset] ??
+                          SYMBOL_OPTIONS_BY_BROKER_AND_CLASS.deriv_ws[
+                            'Synthetic Indices'
+                          ] ??
+                          [];
+
+                        setNewInstrument((prev) => ({
+                          ...prev,
+                          brokerType: nextBroker,
+                          assetClass: nextAsset,
+                          symbol: symbols[0] ?? prev.symbol,
+                        }));
+                      }}
+                      options={BROKER_OPTIONS.map((b) => ({
+                        value: b.value,
+                        label: b.label,
+                      }))}
+                    />
+                    <SelectField
+                      label='Asset class'
+                      value={newInstrumentAssetClass}
+                      onChange={(value) => {
+                        const nextAsset = value as
+                          | 'Synthetic Indices'
+                          | 'Forex'
+                          | 'Stocks'
+                          | 'Commodities'
+                          | 'Indices';
+                        const brokerSymbols =
+                          SYMBOL_OPTIONS_BY_BROKER_AND_CLASS[
+                            newInstrumentBroker
+                          ] ?? {};
+                        const symbols =
+                          brokerSymbols[nextAsset] ??
+                          SYMBOL_OPTIONS_BY_BROKER_AND_CLASS.deriv_ws[
+                            'Synthetic Indices'
+                          ] ??
+                          [];
+
+                        setNewInstrument((prev) => ({
+                          ...prev,
+                          assetClass: nextAsset,
+                          symbol: symbols[0] ?? prev.symbol,
+                        }));
+                      }}
+                      options={ASSET_CLASS_OPTIONS.map((a) => ({
+                        value: a.value,
+                        label: a.label,
+                      }))}
+                    />
+                    <SelectField
                       label='Symbol'
                       value={newInstrument.symbol}
                       onChange={(value) =>
                         setNewInstrument((prev) => ({ ...prev, symbol: value }))
                       }
-                      options={SYMBOL_OPTIONS.map((s) => ({
+                      options={newInstrumentSymbols.map((s) => ({
                         value: s,
                         label: s,
                       }))}
@@ -347,11 +428,8 @@ export function DashboardApp(d: TradingDashboard) {
                       }
                     />
                     <SelectField
-                      label='Recovery strategy'
-                      value={
-                        newInstrument.strategy ??
-                        'standard_accumulative_deficit'
-                      }
+                      label='Execution mode'
+                      value={newInstrument.strategy ?? 'fixed_isolated_stake'}
                       onChange={(value) =>
                         setNewInstrument((prev) => ({
                           ...prev,
@@ -364,15 +442,7 @@ export function DashboardApp(d: TradingDashboard) {
                       options={[
                         {
                           value: 'fixed_isolated_stake',
-                          label: 'Fixed Isolated Stake',
-                        },
-                        {
-                          value: 'standard_accumulative_deficit',
-                          label: 'Standard Accumulative Deficit',
-                        },
-                        {
-                          value: 'aggressive_single_loss_multiplier',
-                          label: 'Aggressive Single-Loss Multiplier',
+                          label: 'Fixed Stake',
                         },
                       ]}
                     />

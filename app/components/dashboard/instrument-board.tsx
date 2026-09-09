@@ -108,7 +108,7 @@ function InstrumentRow({
       timeFrame: c.timeFrame,
       historyDepth: c.historyDepth,
       positionSize: c.positionSize,
-      strategy: c.strategy ?? 'standard_accumulative_deficit',
+      strategy: c.strategy ?? 'fixed_isolated_stake',
       multiplier: c.multiplier,
       stopLossAmount: c.stopLossAmount ?? 0,
       takeProfitAmount: c.takeProfitAmount ?? 0,
@@ -131,7 +131,7 @@ function InstrumentRow({
         timeFrame: draft.timeFrame,
         historyDepth: draft.historyDepth,
         positionSize: draft.positionSize,
-        strategy: draft.strategy ?? 'standard_accumulative_deficit',
+        strategy: draft.strategy ?? 'fixed_isolated_stake',
         multiplier: draft.multiplier,
         stopLossAmount: draft.stopLossAmount,
         takeProfitAmount: draft.takeProfitAmount,
@@ -153,10 +153,10 @@ function InstrumentRow({
     /rate limit|requests per second|too many requests|429/i.test(errorMessage);
   const strategyLabel =
     instrument.config.strategy === 'fixed_isolated_stake'
-      ? 'Fixed Isolated Stake'
+      ? 'Fixed Stake'
       : instrument.config.strategy === 'aggressive_single_loss_multiplier'
-        ? 'Aggressive Single-Loss Multiplier'
-        : 'Standard Accumulative Deficit';
+        ? 'Legacy Recovery'
+        : 'Legacy Recovery';
 
   const strategyBadgeClass =
     instrument.config.strategy === 'fixed_isolated_stake'
@@ -361,7 +361,7 @@ function InstrumentRow({
             />
             <SelectField
               label='Strategy'
-              value={draft.strategy ?? 'standard_accumulative_deficit'}
+              value={draft.strategy ?? 'fixed_isolated_stake'}
               onChange={(value) =>
                 setDraft((prev) => ({
                   ...prev,
@@ -374,15 +374,7 @@ function InstrumentRow({
               options={[
                 {
                   value: 'fixed_isolated_stake',
-                  label: 'Fixed Isolated Stake',
-                },
-                {
-                  value: 'standard_accumulative_deficit',
-                  label: 'Standard Accumulative Deficit',
-                },
-                {
-                  value: 'aggressive_single_loss_multiplier',
-                  label: 'Aggressive Single-Loss Multiplier',
+                  label: 'Fixed Stake',
                 },
               ]}
             />

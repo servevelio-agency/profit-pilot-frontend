@@ -147,10 +147,20 @@ export type InstrumentRecoveryStrategy =
   | 'standard_accumulative_deficit'
   | 'aggressive_single_loss_multiplier';
 
+export type BrokerType = 'deriv_ws' | 'mt5_prime';
+export type AssetClassType =
+  | 'Synthetic Indices'
+  | 'Forex'
+  | 'Stocks'
+  | 'Commodities'
+  | 'Indices';
+
 export interface InstrumentConfig {
   id?: string;
   userId?: string;
   symbol: string;
+  brokerType?: BrokerType;
+  assetClass?: AssetClassType;
   shortEmaPeriod: number;
   longEmaPeriod: number;
   timeFrame: string;
