@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type {
   AdminUser,
   AnalyticsSummary,
+  DerivAccountRow,
   LogEntry,
   LogSummary,
 } from '../../api-client';
@@ -33,6 +34,8 @@ type MainSection = 'overview' | 'token' | 'performance' | 'activity' | 'admin';
 
 export function DashboardApp(d: TradingDashboard) {
   const [section, setSection] = useState<MainSection>('overview');
+  const [showDerivAccountsModal, setShowDerivAccountsModal] = useState(false);
+  const [isCheckingAccounts, setIsCheckingAccounts] = useState(false);
   const {
     currentUser,
     isAdmin,
@@ -73,6 +76,8 @@ export function DashboardApp(d: TradingDashboard) {
     resetPasswordMutation,
     deleteUserMutation,
     adminUsers,
+    derivAccounts,
+    fetchDerivAccounts,
   } = d;
 
   const busyInstrument =
@@ -86,6 +91,15 @@ export function DashboardApp(d: TradingDashboard) {
       ? 'MT5 bridge live'
       : 'MT5 bridge enabled'
     : 'MT5 bridge disabled';
+
+  const preferredDerivAccountId = tokenStatus?.preferredDerivAccountId ?? null;
+  const connectedDerivAccountId =
+    tokenStatus?.runtimeConnected?.accountId ?? null;
+  const derivAccountStatusText = !preferredDerivAccountId
+    ? 'No Deriv account selected'
+    : connectedDerivAccountId === preferredDerivAccountId
+      ? 'Using selected account'
+      : 'Selected account pending reconnect';
 
   const newInstrumentBroker = newInstrument.brokerType ?? 'deriv_ws';
   const newInstrumentAssetClass =
@@ -115,7 +129,7 @@ export function DashboardApp(d: TradingDashboard) {
             active={section === 'token'}
             onClick={() => setSection('token')}
           >
-            Deriv token
+            Token
           </NavItem>
           <NavItem
             active={section === 'performance'}
@@ -256,10 +270,14 @@ export function DashboardApp(d: TradingDashboard) {
                     value={health?.mongo.connected ? 'OK' : 'Down'}
                   />
                   <MiniStat
-                    label='Deriv token'
+                    label='Token'
                     value={
-                      tokenStatus?.configured
-                        ? `••••${tokenStatus.tokenLast4}`
+                      tokenStatus?.configured || tokenStatus?.mt5Configured
+                        ? tokenStatus?.configured && tokenStatus?.mt5Configured
+                          ? `Deriv ••••${tokenStatus.tokenLast4} • MT5 ••••${tokenStatus.mt5LoginLast4 ?? tokenStatus.mt5AccountLast4 ?? ''}`
+                          : tokenStatus?.configured
+                            ? `Deriv ••••${tokenStatus.tokenLast4}`
+                            : `MT5 ••••${tokenStatus.mt5LoginLast4 ?? tokenStatus.mt5AccountLast4 ?? ''}`
                         : 'Not set'
                     }
                   />
@@ -280,7 +298,70 @@ export function DashboardApp(d: TradingDashboard) {
                     value={String(logSummary?.openTrades ?? 0)}
                   />
                 </div>
+
+                <div className='mt-4 rounded-xl border border-border bg-background/50 p-4'>
+                  <div className='flex flex-wrap items-center justify-between gap-3'>
+                    <div>
+                      <p className='text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground'>
+                        Deriv selection
+                      </p>
+                      <p className='mt-1 text-sm text-foreground'>
+                        {derivAccountStatusText}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                        connectedDerivAccountId === preferredDerivAccountId &&
+                        preferredDerivAccountId
+                          ? 'bg-emerald-500/10 text-emerald-300'
+                          : 'bg-amber-500/10 text-amber-300'
+                      }`}
+                    >
+                      {preferredDerivAccountId
+                        ? connectedDerivAccountId === preferredDerivAccountId
+                          ? 'Match'
+                          : 'Waiting'
+                        : 'No selection'}
+                    </span>
+                  </div>
+
+                  <div className='mt-3 grid gap-3 sm:grid-cols-2'>
+                    <div className='rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3'>
+                      <p className='text-[10px] uppercase tracking-[0.12em] text-emerald-300/80'>
+                        Selected
+                      </p>
+                      <p className='mt-1 text-base font-semibold text-emerald-200'>
+                        {preferredDerivAccountId ?? 'Not selected'}
+                      </p>
+                    </div>
+                    <div className='rounded-lg border border-amber-500/20 bg-amber-500/5 p-3'>
+                      <p className='text-[10px] uppercase tracking-[0.12em] text-amber-300/80'>
+                        Connected
+                      </p>
+                      <p className='mt-1 text-base font-semibold text-amber-200'>
+                        {connectedDerivAccountId ?? 'Not connected'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </Panel>
+
+              <div className='mt-4'>
+                <button
+                  type='button'
+                  onClick={async () => {
+                    try {
+                      await fetchDerivAccounts();
+                      setShowDerivAccountsModal(true);
+                    } catch (e) {
+                      // ignore
+                    }
+                  }}
+                  className='rounded-md border px-3 py-2 text-sm'
+                >
+                  Check accounts
+                </button>
+              </div>
 
               <Panel
                 title='Instruments'
@@ -749,7 +830,151 @@ export function DashboardApp(d: TradingDashboard) {
                   Remove all
                 </ButtonGhost>
               </div>
+              <div className='mt-4'>
+                <button
+                  type='button'
+                  disabled={isCheckingAccounts}
+                  onClick={async () => {
+                    try {
+                      setIsCheckingAccounts(true);
+                      await fetchDerivAccounts();
+                      setShowDerivAccountsModal(true);
+                    } catch (e) {
+                      // ignore
+                    } finally {
+                      setIsCheckingAccounts(false);
+                    }
+                  }}
+                  className='flex items-center gap-2 rounded-md border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60'
+                >
+                  {isCheckingAccounts ? (
+                    <>
+                      <span className='inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent' />
+                      Checking…
+                    </>
+                  ) : (
+                    'Check accounts'
+                  )}
+                </button>
+              </div>
             </Panel>
+          )}
+
+          {/* Accounts modal (simple) */}
+          {/* keep modal next to overview for visibility */}
+          {section === 'overview' && showDerivAccountsModal && (
+            <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
+              <div className='w-full max-w-2xl rounded-lg bg-card p-6'>
+                <div className='flex items-center justify-between'>
+                  <h3 className='text-lg font-semibold'>Deriv accounts</h3>
+                  <button
+                    onClick={() => {
+                      setShowDerivAccountsModal(false);
+                    }}
+                    className='text-sm text-muted-foreground'
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className='mt-4 space-y-3'>
+                  {isCheckingAccounts ? (
+                    <div className='flex items-center justify-center gap-3 py-8 text-sm text-muted-foreground'>
+                      <span className='inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent' />
+                      Loading Deriv accounts…
+                    </div>
+                  ) : (derivAccounts || []).length === 0 ? (
+                    <p className='text-sm text-muted-foreground'>
+                      No accounts found.
+                    </p>
+                  ) : (
+                    (derivAccounts ?? []).map((a: DerivAccountRow) => {
+                      const isCurrent =
+                        a.account_id === tokenStatus?.preferredDerivAccountId;
+                      const isConnected =
+                        a.account_id ===
+                        tokenStatus?.runtimeConnected?.accountId;
+                      return (
+                        <div
+                          key={a.account_id}
+                          className={`flex items-center justify-between rounded-lg p-3 border ${
+                            isCurrent
+                              ? 'border-emerald-400 bg-emerald-600/5'
+                              : 'border-border'
+                          }`}
+                        >
+                          <div>
+                            <p className='font-medium flex items-center gap-3'>
+                              <span>{a.account_id}</span>
+                              <span className='text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground'>
+                                {a.account_type}
+                              </span>
+                              {isCurrent && (
+                                <span className='ml-2 inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400'>
+                                  <svg
+                                    width='12'
+                                    height='12'
+                                    viewBox='0 0 24 24'
+                                    fill='none'
+                                    xmlns='http://www.w3.org/2000/svg'
+                                  >
+                                    <path
+                                      d='M20 6L9 17l-5-5'
+                                      stroke='currentColor'
+                                      strokeWidth='2'
+                                      strokeLinecap='round'
+                                      strokeLinejoin='round'
+                                    />
+                                  </svg>
+                                  Preferred
+                                </span>
+                              )}
+                              {isConnected && (
+                                <span className='ml-2 inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400'>
+                                  <svg
+                                    width='12'
+                                    height='12'
+                                    viewBox='0 0 24 24'
+                                    fill='none'
+                                    xmlns='http://www.w3.org/2000/svg'
+                                  >
+                                    <circle
+                                      cx='12'
+                                      cy='12'
+                                      r='6'
+                                      stroke='currentColor'
+                                      strokeWidth='2'
+                                    />
+                                  </svg>
+                                  Connected
+                                </span>
+                              )}
+                            </p>
+                            <p className='text-xs text-muted-foreground mt-1'>
+                              Balance: {a.balance} {a.currency}
+                            </p>
+                          </div>
+                          <div className='flex gap-2'>
+                            <button
+                              onClick={() => {
+                                if (!isCurrent) {
+                                  saveTokenMutation.mutate({
+                                    preferredDerivAccountId: a.account_id,
+                                  });
+                                }
+                                setShowDerivAccountsModal(false);
+                              }}
+                              className={`rounded-md px-3 py-1 text-sm ${isCurrent ? 'bg-muted text-muted-foreground' : 'bg-emerald-500/10 text-emerald-200'}`}
+                            >
+                              {isCurrent ? 'Selected' : 'Select'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           {section === 'performance' && (

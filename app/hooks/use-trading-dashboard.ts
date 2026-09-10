@@ -5,10 +5,12 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import type { DerivAccountRow } from '../api-client';
 import {
   tradingAPI,
   type InstrumentConfig,
   type InstrumentState,
+  type TokenStatus,
 } from '../api-client';
 import { extractErrorMessage } from '../lib/format';
 import {
@@ -53,6 +55,9 @@ function useTradingDashboardInternal() {
     DEFAULT_NEW_INSTRUMENT
   );
   const [showAddInstrument, setShowAddInstrument] = useState(false);
+  const [derivAccounts, setDerivAccounts] = useState<DerivAccountRow[] | null>(
+    null
+  );
   const [createUserForm, setCreateUserForm] = useState<CreateUserForm>({
     email: '',
     password: '',
@@ -86,6 +91,13 @@ function useTradingDashboardInternal() {
     refetchInterval: 5000,
     ...poll,
   });
+
+  const fetchDerivAccounts = async () => {
+    const data = (await tradingAPI.getDerivAccounts()).data;
+    const rows: DerivAccountRow[] = data?.data || [];
+    setDerivAccounts(rows);
+    return rows;
+  };
 
   const instrumentsQuery = useQuery({
     queryKey: ['dashboard', 'instruments'],
@@ -225,8 +237,9 @@ function useTradingDashboardInternal() {
       mt5Password?: string;
       mt5Server?: string;
       mt5AccountNumber?: string;
+      preferredDerivAccountId?: string;
     }) => (await tradingAPI.saveToken(payload)).data,
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       setTokenInput('');
       setMt5Credentials({
         login: '',
@@ -235,8 +248,40 @@ function useTradingDashboardInternal() {
         accountNumber: '',
       });
       setGlobalError(null);
-      setGlobalSuccess('Broker credentials saved successfully');
-      setTimeout(() => setGlobalSuccess(null), 3000);
+      const preferredId = variables?.preferredDerivAccountId;
+      if (preferredId) {
+        setGlobalSuccess('Preferred Deriv account saved — waiting for daemon');
+        // Poll token status to see when runtime connects to preferred account
+        const maxAttempts = 8;
+        let attempt = 0;
+        const pollInterval = 2000;
+        const check = async () => {
+          attempt += 1;
+          try {
+            const status = (await tradingAPI.getTokenStatus())
+              .data as TokenStatus;
+            if (status?.runtimeConnected?.accountId === preferredId) {
+              setGlobalSuccess('Daemon connected to preferred Deriv account');
+              setTimeout(() => setGlobalSuccess(null), 3000);
+              return;
+            }
+          } catch (e) {
+            // ignore
+          }
+          if (attempt < maxAttempts) {
+            setTimeout(check, pollInterval);
+          } else {
+            setGlobalError('Daemon not yet connected to preferred account');
+            setTimeout(() => setGlobalError(null), 5000);
+            setGlobalSuccess(null);
+          }
+        };
+        void check();
+      } else {
+        const msg = 'Broker credentials saved successfully';
+        setGlobalSuccess(msg);
+        setTimeout(() => setGlobalSuccess(null), 3000);
+      }
       await queryClient.invalidateQueries({ queryKey: ['dashboard', 'token'] });
       await queryClient.refetchQueries({ queryKey: ['dashboard', 'token'] });
     },
@@ -547,6 +592,8 @@ function useTradingDashboardInternal() {
     adminUsers,
     instrumentPollMs,
     setInstrumentPollMs,
+    derivAccounts,
+    fetchDerivAccounts,
   };
 }
 

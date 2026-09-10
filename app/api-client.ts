@@ -52,6 +52,12 @@ export interface TokenStatus {
   mt5Configured: boolean;
   mt5LoginLast4: string | null;
   mt5AccountLast4: string | null;
+  preferredDerivAccountId?: string | null;
+  runtimeConnected?: {
+    connected: boolean;
+    accountId?: string | null;
+    accountType?: string | null;
+  } | null;
   derivConnected: boolean;
   mt5ReadyForTesting: boolean;
   mt5LiveBridgeAvailable: boolean;
@@ -78,6 +84,16 @@ export interface BrokerCredentialPayload {
   mt5Password?: string;
   mt5Server?: string;
   mt5AccountNumber?: string;
+  preferredDerivAccountId?: string;
+}
+
+export interface DerivAccountRow {
+  account_id: string;
+  balance: string;
+  currency: string;
+  group?: string;
+  status?: string;
+  account_type?: string;
 }
 
 export interface AdminUser extends User {
@@ -319,6 +335,8 @@ export const tradingAPI = {
       user: User;
       generatedPassword: string | null;
     }>('/admin/users', payload),
+  getDerivAccounts: () =>
+    apiClient.get<{ data: DerivAccountRow[] }>('/user/token/accounts'),
   resetAdminUserPassword: (userId: string, password: string) =>
     apiClient.patch<{ success: boolean; message: string }>(
       `/admin/users/${userId}/password`,
