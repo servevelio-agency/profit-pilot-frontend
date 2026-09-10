@@ -442,10 +442,7 @@ export function DashboardApp(d: TradingDashboard) {
                       onChange={(value) =>
                         setNewInstrument((prev) => ({
                           ...prev,
-                          strategy: value as
-                            | 'fixed_isolated_stake'
-                            | 'standard_accumulative_deficit'
-                            | 'aggressive_single_loss_multiplier',
+                          strategy: value as 'fixed_isolated_stake',
                         }))
                       }
                       options={[

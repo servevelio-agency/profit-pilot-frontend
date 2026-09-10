@@ -151,19 +151,9 @@ function InstrumentRow({
   const rateLimited =
     !!errorMessage &&
     /rate limit|requests per second|too many requests|429/i.test(errorMessage);
-  const strategyLabel =
-    instrument.config.strategy === 'fixed_isolated_stake'
-      ? 'Fixed Stake'
-      : instrument.config.strategy === 'aggressive_single_loss_multiplier'
-        ? 'Legacy Recovery'
-        : 'Legacy Recovery';
+  const strategyLabel = 'Fixed Stake';
 
-  const strategyBadgeClass =
-    instrument.config.strategy === 'fixed_isolated_stake'
-      ? 'bg-slate-500/15 text-slate-200'
-      : instrument.config.strategy === 'aggressive_single_loss_multiplier'
-        ? 'bg-amber-500/15 text-amber-200'
-        : 'bg-cyan-500/15 text-cyan-200';
+  const strategyBadgeClass = 'bg-slate-500/15 text-slate-200';
 
   return (
     <div
@@ -365,10 +355,7 @@ function InstrumentRow({
               onChange={(value) =>
                 setDraft((prev) => ({
                   ...prev,
-                  strategy: value as
-                    | 'fixed_isolated_stake'
-                    | 'standard_accumulative_deficit'
-                    | 'aggressive_single_loss_multiplier',
+                  strategy: value as 'fixed_isolated_stake',
                 }))
               }
               options={[

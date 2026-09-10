@@ -177,10 +177,7 @@ export interface AnalyticsSummary {
   latest: TradeCloseAnalyticsRow[];
 }
 
-export type InstrumentRecoveryStrategy =
-  | 'fixed_isolated_stake'
-  | 'standard_accumulative_deficit'
-  | 'aggressive_single_loss_multiplier';
+export type InstrumentRecoveryStrategy = 'fixed_isolated_stake';
 
 export type BrokerType = 'deriv_ws' | 'mt5_prime';
 export type AssetClassType =
