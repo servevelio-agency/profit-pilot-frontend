@@ -25,6 +25,7 @@ export type CreateUserForm = {
   email: string;
   password: string;
   role: 'user' | 'admin';
+  generatePassword: boolean;
 };
 
 const poll = {
@@ -56,6 +57,7 @@ function useTradingDashboardInternal() {
     email: '',
     password: '',
     role: 'user',
+    generatePassword: true,
   });
 
   const meQuery = useQuery({
@@ -398,11 +400,62 @@ function useTradingDashboardInternal() {
 
   const createUserMutation = useMutation({
     mutationFn: async (payload: CreateUserForm) =>
-      (await tradingAPI.createAdminUser(payload)).data,
-    onSuccess: async () => {
-      setCreateUserForm({ email: '', password: '', role: 'user' });
+      (
+        await tradingAPI.createAdminUser({
+          email: payload.email,
+          password: payload.password,
+          role: payload.role,
+          generatePassword: payload.generatePassword,
+        })
+      ).data,
+    onSuccess: async (data) => {
+      setCreateUserForm({
+        email: '',
+        password: '',
+        role: 'user',
+        generatePassword: true,
+      });
       setGlobalError(null);
-      setGlobalSuccess('User created successfully');
+      setGlobalSuccess(
+        data.generatedPassword
+          ? `User created successfully. Temporary password: ${data.generatedPassword}`
+          : 'User created successfully'
+      );
+      setTimeout(() => setGlobalSuccess(null), 5000);
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['dashboard', 'health'],
+      });
+      await queryClient.refetchQueries({ queryKey: ['admin', 'users'] });
+      await queryClient.refetchQueries({ queryKey: ['dashboard', 'health'] });
+    },
+    onError: (error) => setGlobalError(extractErrorMessage(error)),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({
+      userId,
+      password,
+    }: {
+      userId: string;
+      password: string;
+    }) => (await tradingAPI.resetAdminUserPassword(userId, password)).data,
+    onSuccess: async () => {
+      setGlobalError(null);
+      setGlobalSuccess('Password updated successfully');
+      setTimeout(() => setGlobalSuccess(null), 3000);
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      await queryClient.refetchQueries({ queryKey: ['admin', 'users'] });
+    },
+    onError: (error) => setGlobalError(extractErrorMessage(error)),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) =>
+      (await tradingAPI.deleteAdminUser(userId)).data,
+    onSuccess: async (_data, userId) => {
+      setGlobalError(null);
+      setGlobalSuccess(`User ${userId} removed successfully`);
       setTimeout(() => setGlobalSuccess(null), 3000);
       await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       await queryClient.invalidateQueries({
@@ -477,6 +530,8 @@ function useTradingDashboardInternal() {
     closePositionMutation,
     removeInstrumentMutation,
     createUserMutation,
+    resetPasswordMutation,
+    deleteUserMutation,
     activeInstrumentCount,
     openPositionCount,
     userCount,

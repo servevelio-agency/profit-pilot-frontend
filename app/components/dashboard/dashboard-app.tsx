@@ -70,6 +70,8 @@ export function DashboardApp(d: TradingDashboard) {
     createUserForm,
     setCreateUserForm,
     createUserMutation,
+    resetPasswordMutation,
+    deleteUserMutation,
     adminUsers,
   } = d;
 
@@ -827,18 +829,34 @@ export function DashboardApp(d: TradingDashboard) {
                       setCreateUserForm((prev) => ({ ...prev, email: value }))
                     }
                   />
-                  <TextField
-                    label='Password'
-                    type='password'
-                    value={createUserForm.password}
-                    placeholder='Temporary password'
-                    onChange={(value) =>
-                      setCreateUserForm((prev) => ({
-                        ...prev,
-                        password: value,
-                      }))
-                    }
-                  />
+                  <label className='flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground'>
+                    <input
+                      type='checkbox'
+                      checked={createUserForm.generatePassword}
+                      onChange={(event) =>
+                        setCreateUserForm((prev) => ({
+                          ...prev,
+                          generatePassword: event.target.checked,
+                        }))
+                      }
+                      className='h-4 w-4 rounded border-input accent-primary'
+                    />
+                    <span>Generate password automatically</span>
+                  </label>
+                  {!createUserForm.generatePassword && (
+                    <TextField
+                      label='Password'
+                      type='password'
+                      value={createUserForm.password}
+                      placeholder='Set a temporary password'
+                      onChange={(value) =>
+                        setCreateUserForm((prev) => ({
+                          ...prev,
+                          password: value,
+                        }))
+                      }
+                    />
+                  )}
                   <SelectField
                     label='Role'
                     value={createUserForm.role}
@@ -877,7 +895,22 @@ export function DashboardApp(d: TradingDashboard) {
                     <p className='text-sm text-muted-foreground'>No users.</p>
                   ) : (
                     adminUsers.map((user) => (
-                      <AdminUserRow key={user.id} user={user} />
+                      <AdminUserRow
+                        key={user.id}
+                        user={user}
+                        onDelete={() => deleteUserMutation.mutate(user.id)}
+                        deleting={deleteUserMutation.isPending}
+                        onResetPassword={(password) =>
+                          resetPasswordMutation.mutate({
+                            userId: user.id,
+                            password,
+                          })
+                        }
+                        resetting={
+                          resetPasswordMutation.isPending &&
+                          resetPasswordMutation.variables?.userId === user.id
+                        }
+                      />
                     ))
                   )}
                 </div>
@@ -1097,20 +1130,102 @@ function RecentActivityTable({ rows }: { rows: LogEntry[] }) {
   );
 }
 
-function AdminUserRow({ user }: { user: AdminUser }) {
+function AdminUserRow({
+  user,
+  onDelete,
+  deleting,
+  onResetPassword,
+  resetting,
+}: {
+  user: AdminUser;
+  onDelete?: () => void;
+  deleting?: boolean;
+  onResetPassword?: (password: string) => void;
+  resetting?: boolean;
+}) {
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [draftPassword, setDraftPassword] = useState('');
+
   return (
     <div className='flex flex-col gap-2 rounded-lg border border-border bg-background/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between'>
       <div>
-        <p className='font-medium'>{user.email}</p>
+        <div className='flex items-center gap-2'>
+          <p className='font-medium'>{user.email}</p>
+          {user.role === 'admin' && (
+            <span className='rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-200'>
+              Protected
+            </span>
+          )}
+        </div>
         <p className='text-xs text-muted-foreground'>
           {user.role} · joined {formatDate(user.createdAt)}
         </p>
       </div>
-      <div className='text-right text-xs text-muted-foreground'>
-        <p>
-          Token: {user.token.tokenLast4 ? `••••${user.token.tokenLast4}` : '—'}
-        </p>
-        <p>{formatDate(user.token.tokenUpdatedAt)}</p>
+      <div className='flex flex-col items-end gap-2'>
+        <div className='text-right text-xs text-muted-foreground'>
+          <p>
+            Token:{' '}
+            {user.token.tokenLast4 ? `••••${user.token.tokenLast4}` : '—'}
+          </p>
+          <p>{formatDate(user.token.tokenUpdatedAt)}</p>
+        </div>
+        <div className='flex flex-wrap items-center justify-end gap-2'>
+          {user.role !== 'admin' && (
+            <>
+              {showResetPassword ? (
+                <>
+                  <input
+                    type='password'
+                    value={draftPassword}
+                    onChange={(event) => setDraftPassword(event.target.value)}
+                    placeholder='New password'
+                    className='w-40 rounded-md border border-input bg-background px-2 py-1.5 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                  />
+                  <button
+                    type='button'
+                    onClick={() => {
+                      const password = draftPassword.trim();
+                      if (!password) return;
+                      onResetPassword?.(password);
+                      setDraftPassword('');
+                      setShowResetPassword(false);
+                    }}
+                    disabled={resetting || !draftPassword.trim()}
+                    className='rounded-md bg-amber-500/15 px-2.5 py-1.5 text-[11px] font-medium text-amber-200 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60'
+                  >
+                    {resetting ? 'Saving…' : 'Save'}
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setShowResetPassword(false);
+                      setDraftPassword('');
+                    }}
+                    className='rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground'
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <button
+                  type='button'
+                  onClick={() => setShowResetPassword(true)}
+                  className='rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-200 transition hover:bg-amber-500/20'
+                >
+                  Reset password
+                </button>
+              )}
+              <button
+                type='button'
+                onClick={onDelete}
+                disabled={deleting}
+                className='rounded-md border border-destructive/50 bg-destructive/10 px-2.5 py-1.5 text-[11px] font-medium text-destructive transition hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-60'
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

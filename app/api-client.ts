@@ -33,6 +33,12 @@ export interface User {
   createdAt: string;
 }
 
+export interface CreateUserResponse {
+  success: boolean;
+  user: User;
+  generatedPassword: string | null;
+}
+
 export interface AuthResponse {
   token: string;
   user: User;
@@ -304,8 +310,22 @@ export const tradingAPI = {
   getAdminUsers: () => apiClient.get<AdminUser[]>('/admin/users'),
   createAdminUser: (payload: {
     email: string;
-    password: string;
+    password?: string;
     role: 'user' | 'admin';
+    generatePassword?: boolean;
   }) =>
-    apiClient.post<{ success: boolean; user: User }>('/admin/users', payload),
+    apiClient.post<{
+      success: boolean;
+      user: User;
+      generatedPassword: string | null;
+    }>('/admin/users', payload),
+  resetAdminUserPassword: (userId: string, password: string) =>
+    apiClient.patch<{ success: boolean; message: string }>(
+      `/admin/users/${userId}/password`,
+      { password }
+    ),
+  deleteAdminUser: (userId: string) =>
+    apiClient.delete<{ success: boolean; user?: User }>(
+      `/admin/users/${userId}`
+    ),
 };
